@@ -11,6 +11,10 @@ import cookieParser from "cookie-parser";
 import multer from "multer";
 import fs from "fs";
 import Post from "./models/post.js";
+
+import dotenv from "dotenv";
+dotenv.config();
+
 // import PostPage from "../client/src/Pages/postPage.jsx";  
 
 // Configure multer for file uploads n its node.js middleware for used uploading files
@@ -18,37 +22,74 @@ import Post from "./models/post.js";
 const uploadMiddleware = multer({ dest: "uploads/" });
 
 const app = express();
-const secret = "asfdgggdskkk";
+// const secret = "asfdgggdskkk";
+const PORT = process.env.PORT || 5000;
+const secret = process.env.JWT_SECRET;
 
 // Middlewares
 app.use(express.json());
 app.use(cookieParser());
 app.use("/uploads", express.static("uploads")); // Serve uploaded files
 app.use(
-  cors({
-    origin: "http://localhost:5173",
+  // cors({
+  //   // origin: "http://localhost:5173",
+  //   // origin: process.env.CLIENT_URL,
+  //   origin: ["http://localhost:5173", "http://localhost:5174"],
+  //   credentials: true,
+  //   methods: ["GET", "POST", "PUT", "DELETE"],
+  //   allowedHeaders: ["Content-Type", "Authorization"],
+  // })
+
+ cors({
+    origin: function (origin, callback) {
+      if (!origin) return callback(null, true); // allow Postman, curl, etc.
+
+      // Allow env CLIENT_URL (5173) + any localhost port (for dev flexibility)
+      if (
+        origin === process.env.CLIENT_URL ||
+        /^http:\/\/localhost:\d+$/.test(origin)
+      ) {
+        return callback(null, true);
+      }
+
+      callback(new Error("Not allowed by CORS"));
+    },
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE"],
     allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
 // Connect to MongoDB
+// async function startServer() {
+  // try {
+  //   await mongoose.connect(
+  //     "mongodb+srv://jaysawwalakhe1234:jay0504@cluster0.pivfgrh.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
+  //   );
+  //   console.log("✅ Connected to MongoDB");
+
+  //   // Ensure cookies are sent in CORS responses
+  //   app.use((req, res, next) => {
+  //     res.header("Access-Control-Allow-Credentials", "true");
+  //     next();
+  //   });
+  // } catch (err) {
+  //   console.error("❌ Error connecting to MongoDB:", err);
+  //   process.exit(1);
+  // }
 async function startServer() {
-  try {
-    await mongoose.connect(
-      "mongodb+srv://jaysawwalakhe1234:jay0504@cluster0.pivfgrh.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
-    );
+   try {
+    await mongoose.connect(process.env.MONGO_URI);
     console.log("✅ Connected to MongoDB");
 
-    // Ensure cookies are sent in CORS responses
     app.use((req, res, next) => {
       res.header("Access-Control-Allow-Credentials", "true");
       next();
     });
   } catch (err) {
-    console.error("❌ Error connecting to MongoDB:", err);
+    console.error(" Error connecting to MongoDB:", err);
     process.exit(1);
   }
+
 
   // REGISTER
   app.post("/register", async (req, res) => {
